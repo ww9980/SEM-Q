@@ -1,0 +1,202 @@
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>SEM-Q</title>
+</head>
+
+<body>
+	<script type="text/javascript">
+		var socket;
+		if (!window.WebSocket) {
+			window.WebSocket = window.MozWebSocket;
+		}
+		if (window.WebSocket) {
+			socket = new WebSocket("ws://localhost:8080/ws");
+			socket.onmessage = function (event) {
+                //console.log(event.data);
+                var jmsg = JSON.parse(event.data);
+                switch(jmsg.type){
+                    case "Boardcast":
+                    var iname = jmsg.name;
+                    var iS = jmsg.Supra;
+                    var iS1 = jmsg.S1;
+                    var iS2 = jmsg.S2;
+                    var time = jmsg.Time;
+                    
+                    var trRow = document.createElement("tr");
+                    var tdName = trRow.insertCell();
+                    tdName.innerHTML = iname;
+                    var tdSupra = trRow.insertCell();
+                    tdSupra.innerHTML = iS;
+                    var tdS1 = trRow.insertCell();
+                    tdS1.innerHTML = iS1;
+                    var tdS2 = trRow.insertCell();
+                    tdS2.innerHTML = iS2;
+                    var tdTime = trRow.insertCell();
+                    tdTime.innerHTML = time;
+                    var tdRmv = trRow.insertCell();
+                    //var btnX = document.createElement('button');
+                    //btnX.innerHTML = "X";
+                    tdRmv.innerHTML = "x";
+                    //tdRmv.setAttribute('onclick', 'delrow(this)');
+                    tdRmv.setAttribute('onclick', 'delrequest(this)');
+                    document.getElementById("qtb").appendChild(trRow);
+                    //var ta = document.getElementById('responseText');
+                    //ta.value = ta.value + '\n' + event.data
+                
+                    break;
+                    
+                    case "DelQ":
+                    var dname = jmsg.name;
+                    var dtime = jmsg.time;
+                    delname(dname, dtime);
+                    break;
+                }
+                
+			};
+			socket.onopen = function (event) {
+				//var ta = document.getElementById('responseText');
+				<!-- ta.value = "连接开启!";-->
+				//ta.value = "Connected!";
+			};
+			socket.onclose = function (event) {
+				//var ta = document.getElementById('responseText');
+				<!-- ta.value = ta.value + "Connection lost. 连接被关闭";-->
+                //ta.value = ta.value + "Connection lost.";
+			};
+		} else {
+			<!-- alert("你的浏览器不支持 WebSocket！");-->
+			alert("Your browser does not support WebSocket, update it and try again.");
+		}
+
+		function send(message) {
+            var iName = document.getElementById('iname').value;
+            var iS = document.getElementById('Supra').checked;
+            var iS1 = document.getElementById('S1').checked;
+            var iS2 = document.getElementById('S2').checked;
+            if (iName == "" || iName == "Name")
+            {
+                alert("Fill in your NAME! ");
+				return;
+            }
+            if (!(iS1 || iS2 || iS))
+            {
+                alert("Select a SEM! ");
+				return;
+            }
+			if (!window.WebSocket) {
+				alert("No connection. Speak to Fan. ");
+				return;
+			}
+            
+			if (socket.readyState == WebSocket.OPEN) {
+                var msg = {
+                    type: "Queue",
+                    name: iName,
+                    Supra: iS,
+                    S1: iS1,
+                    S2: iS2
+                    }
+				socket.send(JSON.stringify(msg));
+			} else {
+				<!--alert("连接没有开启.");-->
+				alert("No connection. Speak to Fan. ");
+			}
+		}
+        
+        function delrequest(obj)
+        {
+            if(event.srcElement.tagName=="TD"){
+                curRow=event.srcElement.parentElement;
+                var cname = curRow.cells[0].innerHTML;
+                var ctime = curRow.cells[4].innerHTML;
+                
+                if (!window.WebSocket) {
+                    alert("No connection. Speak to Fan. ");
+                    return;
+                }
+            
+                if (socket.readyState == WebSocket.OPEN) {
+                    var msg = {
+                        type: "Del",
+                        name: cname,
+                        time: ctime
+                        }
+                    socket.send(JSON.stringify(msg));
+                } else {
+                    alert("No connection. Speak to Fan. ");
+                }
+            }
+        }
+        
+        function delname(na, ti)
+        {
+            var tab = document.getElementById("qtable");
+            var rows = tab.rows;
+            for(var i=1; i < rows.length; i++)
+            {
+                var row = rows[i];
+                var cells = row.cells;
+                if(cells[0].innerHTML == na && cells[4].innerHTML == ti)
+                {
+                    document.getElementById("qtb").deleteRow(i);
+                }
+            
+            }
+        }
+        
+        function delrow(obj)
+        {
+            if(event.srcElement.tagName=="TD"){
+                curRow=event.srcElement.parentElement;
+                var r = confirm("Delete this row?");
+                if ( r )
+                {
+                    var rowindex = curRow.rowIndex;
+                    document.getElementById("qtb").deleteRow(rowindex);
+                }
+                else{
+                    //nothing
+                }
+            }
+        }
+	</script>
+
+<h2>SEM-Q</h2>
+<p style="font-size: 1.5em;"> You can <strong style="background-color: #317399; padding: 0.5px; color:fff;"> type your name</strong> to join the queue. </p>
+<form onsubmit="return false;">
+</p><input id="iname" style="width:100px;" name = "iname" type="text" value="Name" />
+<input id="Supra" name = "Supra" type="checkbox" value="" />
+<label for="Supra">Supra</label>
+<input id="S1" name = "S1" type="checkbox" value="" />
+<label for="S1">S1</label>
+<input id="S2" name = "S2" type="checkbox" value="" />
+<label for="S2">S2</label>
+<input type="button" value="Join" onclick="send(this.form.S1.value)">
+</form>
+<p style="font-size: 1.5em;"> The current queue is here: </p>
+<table id="qtable" style="height: 50px; width: 800px;">
+<tbody id="qtb">
+<tr>
+<th style="width: 100px;">Name</td>
+<th style="width: 100px;">Supra</td>
+<th style="width: 120px;">Sigma1 EDX</td>
+<th style="width: 180px;">Sigma2 Loadlock</td>
+<th style="width: 80px;">Time</td>
+<th style="width: 20px;">Remove</td>
+</tr>
+</tbody>
+</table>
+
+	<br>
+	<br>
+	<br>
+	<br>
+	<br>
+	<br>
+	<br>
+	<br>
+This is a website made by Fan
+</body>
+</html>
