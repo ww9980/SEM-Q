@@ -4,6 +4,8 @@ const server = new WebSocket.Server({ port: 8080 });
 
 console.log('Server started');
 
+var currentQ = [];
+
 server.on('open', function open() {
   console.log('connected');
 });
@@ -21,6 +23,10 @@ server.on('connection', function connection(ws, req) {
 
   // 发送欢迎信息给客户端
   //ws.send("Welcome " + clientName);
+  for ( rcd in currentQ)
+  {
+      ws.send(rcd);
+  }
 
   ws.on('message', function incoming(message) {
       var jmsg = JSON.parse(message);
@@ -30,11 +36,34 @@ server.on('connection', function connection(ws, req) {
             var iS = jmsg.Supra;
             var iS1 = jmsg.S1;
             var iS2 = jmsg.S2;
+            var now = new Date();
+            var chour = now.getHours();
+            var cmin = now.getMinutes();
+            var csec = now.getSeconds();
+            var TimeNow = chour + ":" + cmin + ":" + csec; 
+            var rmsg = {
+                type: "Boardcast",
+                name: jmsg.name,
+                Supra: jmsg.Supra,
+                S1: jmsg.S1,
+                S2: jmsg.S2,
+                Time: TimeNow
+                    }
+            currentQ.push(rmsg);
       console.log('Join: %s from %s', iname, clientName);
             break;
           case "Del":
             var dname = jmsg.name;
             var dtime = jmsg.time;
+            for (record in currentQ)
+            {
+                var jrcd = JSON.parse(record);
+                if (jrcd.name == jmsg.name && jrcd.time == jmsg.time)
+                {
+                    delete(record);
+                    break;
+                }
+            }
       console.log('Delete: %s from %s', dname, clientName);
             break;
         }
